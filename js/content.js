@@ -259,11 +259,24 @@ function calculateStateTax(salary, state, filingStatus) {
     brackets = [
       { threshold: 0, rate: 0.0539 }
     ];
-  } else if (state === 'TX' || state === 'WA') {
+    
+  }   else if (state === 'IL') {
+    // Illinois has a flat income tax rate of 4.95%
+    if (filingStatus === 'Married Filing Jointly') {
+      standardDeduction = 5550; 
+    } else {
+      standardDeduction = 2775; 
+    }
+    brackets = [
+      { threshold: 0, rate: 0.0495 } 
+    ];
+  }
+  
+  
+  else if (state === 'TX' || state === 'WA') {
     // Texas and Washington have no state income tax
     return 0;
   }
-  
   // Taxable income after state standard deduction
   let taxableIncome = Math.max(0, salary - standardDeduction);
   
@@ -354,6 +367,12 @@ function calculateLocalTax(salary, state, localTax, filingStatus) {
       return 0;
     }
   }
+  // else if (state === 'IL') {
+  //   if (localTax === 'chicago') {
+  //     // Chicago doesn't have a city income tax, only state income tax
+  //     return 0;
+  //   }
+  // }
   
   return 0;
 }
@@ -366,12 +385,13 @@ function parseLocationFromRow(row) {
   const locationText = locationSpan.textContent;
   const city = locationText.split(',')[0].trim();
   const state = locationText.split(',')[1]?.split('|')[0]?.trim();
-  
+  console.log('parseLocationFromRow:', city, state);
   return { city, state };
 }
 
 // Modify calculateTotalTax to accept location parameter
 function calculateTotalTax(salary, location = null) {
+  console.log('calculateTotalTax called with location:', location);
   // If no location provided, use default settings
   if (!location) {
     const federalTax = calculateFederalTax(salary, taxSettings.filingStatus);
@@ -408,10 +428,12 @@ function calculateTotalTax(salary, location = null) {
     } else {
       return federalTax + stateTax + ficaTax + 17000;
     }
+    
   }
   
+  
   // For other supported states, just use federal + state + FICA
-  const supportedStates = ['TX', 'WA', 'VA', 'MA', 'GA'];
+  const supportedStates = ['TX', 'WA', 'VA', 'MA', 'GA', 'IL'];
   if (supportedStates.includes(location.state)) {
     return federalTax + stateTax + ficaTax;
   }
@@ -463,6 +485,7 @@ function formatExactSalary(value) {
 }
 
 // Function to get location from URL
+//bug is here
 function getLocationFromURL() {
     const path = window.location.pathname;
     if (!path.includes('/locations/')) return null;
@@ -477,7 +500,8 @@ function getLocationFromURL() {
         'greater-austin-area': { state: 'TX', city: 'Austin' },
         'atlanta-area': { state: 'GA', city: 'Atlanta' },
         'northern-virginia-washington-dc': { state: 'VA', city: 'Arlington' },
-        'greater-boston-area': { state: 'MA', city: 'Boston' }
+        'greater-boston-area': { state: 'MA', city: 'Boston' },
+        'chicago-area': { state: 'IL', city: 'Chicago' }
     };
     
     for (const [urlPath, location] of Object.entries(mapping)) {
@@ -1288,10 +1312,11 @@ function addAfterTaxDetailedColumn() {
           if (totalTax !== null) {
             mainValue.textContent = formatExactSalary(totalValue - totalTax);
           } else {
-            mainValue.textContent = '$---';
+            console.log('totalTax is null');
+            mainValue.textContent = '$$$$';
           }
         } else {
-          mainValue.textContent = '$---';
+          mainValue.textContent = '$lll';
         }
         
         contentBox.appendChild(mainValue);
